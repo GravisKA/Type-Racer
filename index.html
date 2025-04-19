@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Typing Racer</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(to bottom, #1e1e2f, #2c2c3e);
+      color: white;
+      text-align: center;
+      padding: 20px;
+      margin: 0;
+    }
+    h1 {
+      font-size: 2.5rem;
+      color: #4dd0e1;
+    }
+    .track {
+      position: relative;
+      height: 180px;
+      background: #333;
+      border-radius: 30px;
+      margin: 20px auto;
+      width: 90%;
+      box-shadow: inset 0 2px 6px rgba(0,0,0,0.4);
+    }
+    .car {
+      position: absolute;
+      width: 40px;
+      height: 40px;
+      background: red;
+      border-radius: 50%;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.4);
+      transition: left 0.1s ease-in-out;
+    }
+    .car:nth-child(2) { top: 10px; background: red; }
+    .car:nth-child(3) { top: 60px; background: blue; }
+    .car:nth-child(4) { top: 110px; background: green; }
+
+    .flag {
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 30px;
+      height: 100%;
+      background: black;
+      border-top-right-radius: 30px;
+      border-bottom-right-radius: 30px;
+    }
+    .sentence-container {
+      margin: 20px auto;
+      width: 90%;
+      background: #222;
+      padding: 30px;
+      border-radius: 15px;
+      font-size: 22px;
+      line-height: 1.6;
+      position: relative;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+      color: white;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .highlight-bar {
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 100%;
+      background: rgba(0, 153, 255, 0.1);
+      z-index: 0;
+      transition: all 0.05s linear;
+      border-radius: 15px 0 0 15px;
+    }
+    .letter {
+      padding: 5px 3px;
+      margin: 2px;
+      position: relative;
+      display: inline-block;
+      font-size: 22px;
+      border-radius: 5px;
+      background-color: rgba(255,255,255,0.05);
+    }
+    .letter.correct {
+      color: #4caf50;
+    }
+    .letter.incorrect {
+      color: #f44336;
+    }
+    .letter.active::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      border: 2px solid #00bfff;
+      border-radius: 5px;
+      box-sizing: border-box;
+    }
+    .progress-container {
+      background: #555;
+      height: 14px;
+      border-radius: 7px;
+      margin: 20px auto;
+      width: 90%;
+      box-shadow: inset 0 1px 4px rgba(0,0,0,0.5);
+    }
+    .progress-bar {
+      height: 100%;
+      background: #00e676;
+      border-radius: 7px;
+      width: 0%;
+      transition: width 0.1s ease-in-out;
+    }
+    #victoryScreen {
+      display: none;
+      margin-top: 30px;
+      padding: 20px;
+      background: #333;
+      border-radius: 15px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+    }
+    .victory-details {
+      font-size: 20px;
+      margin-top: 10px;
+      color: #eee;
+    }
+    .victory-buttons button {
+      margin-top: 15px;
+      padding: 12px 24px;
+      font-size: 16px;
+      cursor: pointer;
+      border: none;
+      background: #007bff;
+      color: white;
+      border-radius: 8px;
+      transition: background 0.3s;
+    }
+    .victory-buttons button:hover {
+      background: #0056b3;
+    }
+    .stats {
+      margin-bottom: 15px;
+      font-size: 20px;
+      color: #ccc;
+    }
+    .fullscreen-btn {
+      padding: 10px 25px;
+      font-size: 16px;
+      color: white;
+      background-color: #00796b;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.2);
+    }
+    .fullscreen-btn:hover {
+      background-color: #004d40;
+    }
+  </style>
+</head>
+<body>
+  <h1>🚗 Typing Racer</h1>
+  <div class="stats">
+    WPM: <span id="wpm">0</span> |
+    Accuracy: <span id="accuracy">100</span>% |
+    Mistakes: <span id="mistakes">0</span>
+  </div>
+  <div class="track">
+    <div class="car" id="playerCar"></div>
+    <div class="car" id="aiCar1"></div>
+    <div class="car" id="aiCar2"></div>
+    <div class="flag"></div>
+  </div>
+  <div class="sentence-container">
+    <div class="highlight-bar" id="highlightBar"></div>
+    <span id="sentenceDisplay"></span>
+  </div>
+  <div class="progress-container">
+    <div class="progress-bar" id="progressBar"></div>
+  </div>
+  <div id="victoryScreen">
+    <h2>🏆 Race Complete!</h2>
+    <div class="victory-details" id="victoryStats"></div>
+    <div class="victory-buttons">
+      <button onclick="restartRace()">🏁 Race Again</button>
+    </div>
+  </div>
+  <div class="content">
+    <button class="fullscreen-btn" id="fullscreen">Go Fullscreen</button>
+  </div>
+
+  <script type="module">
+    const sentenceDisplay = document.getElementById("sentenceDisplay");
+    const highlightBar = document.getElementById("highlightBar");
+    const progressBar = document.getElementById("progressBar");
+    const wpmDisplay = document.getElementById("wpm");
+    const accuracyDisplay = document.getElementById("accuracy");
+    const mistakesDisplay = document.getElementById("mistakes");
+    const car = document.getElementById("playerCar");
+    const victoryScreen = document.getElementById("victoryScreen");
+    const victoryStats = document.getElementById("victoryStats");
+
+    const paragraphSets = [
+      [
+        "The car zipped through the streets as the sun began to rise over the city skyline.",
+        "Typing faster makes the car move ahead, and the race becomes a test of skill and speed.",
+        "With each keystroke, the driver surged forward, cutting corners and blasting past obstacles.",
+        "Speedsters blaze across the track, leaving smoke and sparks in their wake.",
+        "Push your limits, shift gears, and race past your rivals to claim victory.",
+        "The roar of the engine was matched only by the click-clack of keys and the rush of adrenaline.",
+        "In the world of digital racing, your fingers are your tires and your brain is your engine.",
+        "Each race is a challenge, a new chance to beat your best and reach the podium."
+      ],
+      [
+        "Every race begins with the sound of the engine roaring to life, a signal that it’s time to focus and go full throttle.",
+        "Drivers scan the track ahead, plotting the best path around tight corners and long straightaways.",
+        "Milliseconds count, and each gear shift can be the difference between first and second place.",
+        "Anticipating the opponent’s next move while managing tire wear adds a layer of mental strategy.",
+        "Adrenaline kicks in during the final lap, and racers push their machines and minds to the limit.",
+        "Crossing the finish line isn’t just about speed—it’s about precision, endurance, and skill."
+      ],
+      [
+        "Behind every successful race car is a team of engineers working tirelessly to perfect every detail.",
+        "From the aerodynamic design to the tire pressure, every element is fine-tuned for performance.",
+        "Software simulations are used to predict behavior under various track conditions and driver inputs.",
+        "During the race, telemetry data flows back to the pit crew in real-time for strategic decisions.",
+        "Mechanical failures are rare, but when they happen, swift repairs can keep the car in the competition.",
+        "Winning isn’t just about the driver—it’s a team victory built on innovation and collaboration."
+      ],
+      [
+        "Success on the track begins with a winning mindset long before the green light flashes.",
+        "Visualization techniques help racers mentally run through each lap with precision.",
+        "Breathing control, focus, and confidence are trained like muscles through repetition.",
+        "Champions treat setbacks as opportunities to learn and improve their mental game.",
+        "Even when leading, they stay alert and hungry, never underestimating the competition.",
+        "The greatest victories often come after moments of doubt, turned into fuel for greatness."
+      ],
+      [
+    "Behind every successful concert is a crew of technicians working tirelessly to perfect the show.",
+    "From the sound system to the lighting design, every detail is calibrated for impact.",
+    "Software controls synchronize effects with precision timing for a seamless experience.",
+    "During the performance, real-time adjustments ensure everything runs smoothly.",
+    "Equipment failures are rare but swiftly addressed to minimize disruptions.",
+    "A great concert isn’t just about the artist—it’s a team effort bringing the vision to life."
+],
+[
+    "At the heart of every successful expedition is a group of explorers united by a shared mission.",
+    "From navigation charts to survival gear, every item is meticulously planned for the journey.",
+    "Advanced mapping technology provides critical insights for uncharted territories.",
+    "Along the way, real-time communication keeps the team connected and informed.",
+    "Unexpected challenges are inevitable, but creative problem-solving can save the day.",
+    "Victory in exploration is a testament to human ingenuity and resilience."
+],
+[
+    "Every thriving garden is the result of dedication and careful tending by its gardener.",
+    "From planting seeds at the right depth to pruning at the ideal time, every task is thoughtfully executed.",
+    "Knowledge of soil health and plant care ensures bountiful growth.",
+    "During the season, close observation helps address pest or weather concerns.",
+    "Challenges like droughts test the gardener’s resolve, but innovation can overcome adversity.",
+    "A flourishing garden is a celebration of patience and nurture."
+],
+[
+    "Behind every captivating film is a director guiding a team of artists to shape a story.",
+    "From the screenplay to the camera angles, every decision is intentional and precise.",
+    "Cutting-edge technology is used to create stunning visual effects and storytelling.",
+    "During filming, collaboration among actors, crew, and producers drives progress.",
+    "Unexpected complications can arise, but creative solutions often enhance the project.",
+    "A blockbuster isn’t just a filmmaker’s dream—it’s the result of many talents combined."
+],
+[
+    "Every remarkable building begins with a vision brought to life by architects and builders.",
+    "From the foundational design to the intricate finishing touches, every step is deliberate.",
+    "Cutting-edge modeling software ensures accuracy and efficiency throughout the process.",
+    "During construction, engineers and workers adapt to unforeseen challenges with precision.",
+    "Supply chain delays can impact schedules, but resourcefulness keeps the project on track.",
+    "A completed structure symbolizes innovation and teamwork at its core."
+],
+[
+    "Behind every athletic champion is a coach refining skills and fostering determination.",
+    "From daily practice routines to strategic game plans, every element is designed for success.",
+    "Advanced analytics provide insights into performance metrics and areas for improvement.",
+    "During competitions, constant communication boosts confidence and focus.",
+    "Injuries may occur, but recovery plans enable a return to peak form.",
+    "Victory in sports represents the culmination of relentless effort and collaboration."
+],
+[
+    "Every thrilling video game is the result of imaginative developers crafting immersive worlds.",
+    "From detailed character designs to intricate coding, every component is intricately woven.",
+    "Cutting-edge graphics engines bring lifelike visuals and dynamic physics to the forefront.",
+    "During development, rigorous testing ensures a smooth and enjoyable player experience.",
+    "Bugs are inevitable, but prompt debugging ensures the final product’s quality.",
+    "A successful game combines artistry, technology, and engagement."
+],
+[
+    "Each groundbreaking invention begins with a concept nurtured by researchers and innovators.",
+    "From feasibility studies to prototype testing, every phase is approached with precision.",
+    "Advanced simulation tools predict outcomes and optimize performance early on.",
+    "During development, feedback from interdisciplinary teams drives refinement and growth.",
+    "Failures occur, but perseverance transforms setbacks into new opportunities.",
+    "Revolutionary inventions redefine possibilities and inspire generations."
+],
+[
+    "Every compelling novel starts with an author weaving ideas into captivating narratives.",
+    "From character development to plot twists, every detail is thoughtfully crafted.",
+    "Creative writing tools and revisions ensure clarity and impact throughout the story.",
+    "During the drafting phase, collaboration with editors refines the manuscript for publishing.",
+    "Writer’s block is a challenge, but perseverance and inspiration overcome creative obstacles.",
+    "A timeless novel evokes emotions and leaves a lasting legacy."
+],
+[
+    "Behind every successful bakery is a team balancing artistry and precision with passion.",
+    "From measuring ingredients to decorating pastries, every task is executed with care.",
+    "High-quality equipment and recipes ensure consistency across all creations.",
+    "During busy hours, teamwork and efficiency are key to meeting customer demands.",
+    "Supply shortages pose challenges, but creative adjustments maintain quality and service.",
+    "A thriving bakery delights its community and celebrates culinary creativity."
+],
+[
+    "Every extraordinary space mission results from scientists and engineers pushing boundaries.",
+    "From designing spacecraft to simulating orbital mechanics, every decision is calculated.",
+    "Advanced computing power supports complex problem-solving and mission planning.",
+    "During the launch and journey, real-time data ensures adjustments for safe outcomes.",
+    "Technical malfunctions are resolved swiftly to ensure mission objectives are met.",
+    "Space exploration is a testament to human curiosity and innovation."
+],
+[
+    "Behind every thrilling roller coaster is a team of designers engineering exhilaration.",
+    "From blueprint designs to safety inspections, every element is meticulously planned.",
+    "Sophisticated simulations guarantee seamless rides and passenger safety.",
+    "During testing, adjustments optimize performance and ensure reliability.",
+    "Unanticipated issues are rare, but they are addressed with rapid problem-solving.",
+    "A roller coaster’s success lies in creating unforgettable experiences for thrill-seekers."
+],
+[
+    "Every charming fashion collection begins with designers sketching ideas that set trends.",
+    "From choosing fabrics to final stitching, every detail reflects creativity and intent.",
+    "Cutting-edge tools bring designs to life in digital and physical forms.",
+    "During runway shows, stylists ensure everything runs smoothly with expert coordination.",
+    "Delays in material shipments can occur but are mitigated through resourceful solutions.",
+    "A captivating collection reflects talent, passion, and innovation in fashion."
+],
+[
+    "Each innovative startup begins with entrepreneurs turning ideas into viable solutions.",
+    "From pitching to investors to building prototypes, every step requires strategic planning.",
+    "Market research tools provide insights into target audiences and growth opportunities.",
+    "During development, iterative testing leads to continuous improvement and adaptation.",
+    "Financial hurdles test resilience, but creativity and persistence ensure steady progress.",
+    "A successful startup changes industries and empowers its visionaries."
+],
+[
+    "Every vibrant orchestra performance results from musicians working in harmonious synergy.",
+    "From tuning instruments to rehearsing endlessly, every moment matters in preparation.",
+    "High-quality acoustics and equipment enrich the clarity of sound for audiences.",
+    "During the performance, the conductor guides tempo and dynamics with finesse.",
+    "Mistakes are rare but gracefully handled without disrupting the flow.",
+    "An exceptional concert captivates audiences and celebrates the unity of art and talent."
+],
+[
+    "Behind every thriving zoo is a team dedicated to the welfare of animals and conservation.",
+    "From habitat design to veterinary care, every element prioritizes safety and comfort.",
+    "Advanced monitoring systems track health and behavior to ensure optimal living conditions.",
+    "During emergencies, prompt action ensures the well-being of animals and staff.",
+    "Public awareness programs educate visitors and foster appreciation for wildlife.",
+    "A successful zoo contributes to preserving biodiversity for future generations."
+],
+[
+    "Every successful humanitarian mission starts with organizations bringing aid to those in need.",
+    "From planning logistics to distributing resources, every action supports communities.",
+    "Advanced communication ensures seamless coordination between global teams.",
+    "During crises, quick decisions save lives and restore hope in affected areas.",
+    "Resource shortages require creative solutions to address urgent demands effectively.",
+    "A humanitarian mission reflects humanity’s compassion and strength during adversity."
+],
+[
+    "Each powerful speech begins with a speaker articulating ideas with clarity and conviction.",
+    "From crafting persuasive arguments to practicing delivery, every aspect demands effort.",
+    "Rhetorical techniques enhance engagement and leave a profound impact on listeners.",
+    "During the speech, adapting to audience reactions maintains connection and momentum.",
+    "Stage fright is a challenge but is overcome by preparation and confidence.",
+    "A great speech inspires change and ignites collective action."
+],
+[
+    "Behind every groundbreaking discovery is a scientist questioning the unknown with curiosity.",
+    "From formulating hypotheses to conducting experiments, every stage requires discipline.",
+    "Sophisticated research tools and methodologies unlock new insights into complex phenomena.",
+    "During the study, meticulous documentation ensures reproducibility and credibility.",
+    "Challenges arise, but adaptability and teamwork lead to breakthroughs that advance knowledge.",
+    "Scientific exploration transforms understanding and shapes the future."
+],
+[
+    "Every intricate puzzle is the result of designers testing the limits of creativity and logic.",
+    "From conceptual sketches to polished illustrations, every element fits seamlessly.",
+    "Advanced software brings puzzles to life with precision and aesthetic appeal.",
+    "During production, collaboration ensures consistency and accuracy in the final product.",
+    "Mistakes can happen but are corrected to maintain quality for players.",
+    "Solving a great puzzle is both a challenge and a celebration of human ingenuity."
+]
+    ];
+
+    let currentSentence = "";
+    let typedCharacters = 0;
+    let totalTyped = 0;
+    let mistakes = 0;
+    let startTime = null;
+    let racesDone = 0;
+    let totalWpm = 0;
+    let inputBuffer = "";
+
+    function getAverageWPM() {
+      return racesDone > 0 ? totalWpm / racesDone : 60;
+    }
+
+    function getSentenceByWPM(avgWPM) {
+      const paragraph = paragraphSets[Math.floor(Math.random() * paragraphSets.length)];
+      let index = Math.floor((avgWPM - 61) / 10);
+      index = Math.min(Math.max(index, 0), paragraph.length - 1);
+      return paragraph[index];
+    }
+
+    function startRace() {
+      const avgWPM = getAverageWPM();
+      currentSentence = getSentenceByWPM(avgWPM);
+      sentenceDisplay.textContent = currentSentence;
+      typedCharacters = 0;
+      totalTyped = 0;
+      mistakes = 0;
+      startTime = performance.now();
+      inputBuffer = "";
+      highlightBar.style.width = "0px";
+      car.style.left = "0px";
+      progressBar.style.width = "0%";
+      updateStats();
+      updateSentenceDisplay();
+    }
+
+    function updateStats() {
+      const elapsedMinutes = (performance.now() - startTime) / 60000;
+      const grossWpm = Math.round((typedCharacters / 5) / elapsedMinutes);
+      const accuracy = typedCharacters > 0 ? ((typedCharacters - mistakes) / typedCharacters) * 100 : 100;
+
+      wpmDisplay.textContent = isFinite(grossWpm) ? grossWpm : 0;
+      accuracyDisplay.textContent = Math.max(0, Math.round(accuracy));
+      mistakesDisplay.textContent = mistakes;
+
+      const progressPercent = (typedCharacters / currentSentence.length) * 100;
+      progressBar.style.width = `${progressPercent}%`;
+      updateHighlighting();
+    }
+
+    function updateSentenceDisplay() {
+      let sentenceHtml = '';
+      for (let i = 0; i < currentSentence.length; i++) {
+        const letter = currentSentence[i];
+        let className = '';
+        
+        // If the current letter has been typed correctly
+        if (typedCharacters === i && inputBuffer === letter) {
+          className = 'correct';
+        } 
+        // If the current letter is incorrect
+        else if (typedCharacters === i && inputBuffer !== letter) {
+          className = 'incorrect';
+        } 
+        // Highlight the active letter
+        if (i === typedCharacters) {
+          className = 'active';
+        }
+        
+        sentenceHtml += `<span class="letter ${className}">${letter}</span>`;
+      }
+      sentenceDisplay.innerHTML = sentenceHtml;
+    }
+
+    function updateHighlighting() {
+      highlightBar.style.width = `${(typedCharacters / currentSentence.length) * 100}%`;
+      car.style.left = `${(typedCharacters / currentSentence.length) * 100}%`;
+    }
+
+    document.addEventListener("keydown", (e) => {
+      if (!startTime) return;
+      if (e.key.length > 1 && e.key !== "Backspace") return;
+
+      const currentLetter = currentSentence[typedCharacters];
+      if (e.key === currentLetter) {
+        // Correct input: Add to typed characters
+        typedCharacters++;
+      } else {
+        // Incorrect input: Count mistake
+        mistakes++;
+      }
+
+      // Track the input buffer for highlighting purposes
+      inputBuffer = e.key;
+      updateSentenceDisplay();
+      updateStats();
+      if (typedCharacters >= currentSentence.length) {
+        endRace();
+      }
+    });
+
+    function endRace() {
+      const elapsedTime = (performance.now() - startTime) / 1000;
+      const raceWPM = Math.round((typedCharacters / 5) / (elapsedTime / 60));
+      totalWpm += raceWPM;
+      racesDone++;
+
+      victoryStats.textContent = `WPM: ${raceWPM} | Accuracy: ${accuracyDisplay.textContent}% | Mistakes: ${mistakesDisplay.textContent}`;
+      victoryScreen.style.display = "block";
+    }
+
+    function restartRace() {
+      victoryScreen.style.display = "none";
+      startRace();
+    }
+    
+     const fullscreenButton = document.getElementById("fullscreen");
+    
+    // Open fullscreen
+      fullscreenButton.addEventListener("click", () => {
+        const w = window.open();
+        w.document.open();
+        w.document.write(document.documentElement.outerHTML);
+        w.document.close();
+      });
+      
+
+    startRace();
+  </script>
+</body>
+</html>
