@@ -185,7 +185,7 @@
     <h2>🏆 Race Complete!</h2>
     <div class="victory-details" id="victoryStats"></div>
     <div class="victory-buttons">
-      <button onclick="restartRace()">🏁 Race Again</button>
+      <button onclick="race-again">🏁 Race Again</button>
     </div>
   </div>
   <div class="content">
@@ -479,27 +479,28 @@
       car.style.left = `${(typedCharacters / currentSentence.length) * 100}%`;
     }
 
-    document.addEventListener("keydown", (e) => {
+     document.addEventListener("keydown", (e) => {
       if (!startTime) return;
       if (e.key.length > 1 && e.key !== "Backspace") return;
-
+    
       const currentLetter = currentSentence[typedCharacters];
-      if (e.key === currentLetter) {
-        // Correct input: Add to typed characters
+    
+      // Handle single quote (') key properly
+      if (e.key === currentLetter || e.key === "'") {  // Fix for single quote
         typedCharacters++;
       } else {
-        // Incorrect input: Count mistake
         mistakes++;
       }
-
-      // Track the input buffer for highlighting purposes
-      inputBuffer = e.key;
-      updateSentenceDisplay();
-      updateStats();
-      if (typedCharacters >= currentSentence.length) {
-        endRace();
-      }
-    });
+  
+    inputBuffer = e.key;
+    updateSentenceDisplay();
+    updateStats();
+  
+    if (typedCharacters >= currentSentence.length) {
+      endRace();
+    }
+  });
+  
 
     function endRace() {
       const elapsedTime = (performance.now() - startTime) / 1000;
@@ -511,10 +512,17 @@
       victoryScreen.style.display = "block";
     }
 
-    function restartRace() {
-      victoryScreen.style.display = "none";
-      startRace();
-    }
+    // Add this to trigger restart when the button is clicked
+document.getElementById("race-again").addEventListener("click", restartRace);
+
+function restartRace() {
+  victoryScreen.style.display = "none";  // Hide the victory screen
+  typedCharacters = 0;  // Reset the typed characters count
+  mistakes = 0;  // Reset the mistakes count
+  startTime = null;  // Reset start time
+  startRace();  // Call your start race function to begin a new race
+}
+
     
      const fullscreenButton = document.getElementById("fullscreen");
     
